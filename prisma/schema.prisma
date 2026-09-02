@@ -1,0 +1,77 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BorrowingStatus {
+  BORROWED
+  RETURNED
+  OVERDUE
+}
+
+model Book {
+  id              String      @id @default(uuid())
+  title           String
+  author          String
+  isbn            String      @unique
+  publisher       String
+  publishedYear   Int
+  category        String
+  totalCopies     Int         @default(1)
+  availableCopies Int         @default(1)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  borrowings      Borrowing[]
+
+  @@index([title])
+  @@index([author])
+  @@index([category])
+  @@map("books")
+}
+
+model Member {
+  id           String       @id @default(uuid())
+  name         String
+  memberNumber String       @unique
+  email        String       @unique
+  phone        String?
+  status       MemberStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  borrowings   Borrowing[]
+
+  @@index([memberNumber])
+  @@index([email])
+  @@map("members")
+}
+
+model Borrowing {
+  id         String          @id @default(uuid())
+  memberId   String
+  bookId     String
+  borrowedAt DateTime        @default(now())
+  dueAt      DateTime
+  returnedAt DateTime?
+  status     BorrowingStatus @default(BORROWED)
+  lateDays   Int             @default(0)
+  fineAmount Float           @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  @@index([memberId])
+  @@index([bookId])
+  @@index([status])
+  @@map("borrowings")
+}
