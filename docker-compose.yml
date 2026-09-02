@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: lms_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: lms_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: lms_api
+    restart: always
+    environment:
+      DATABASE_URL: 'postgresql://postgres:password@postgres:5432/lms_dev?schema=public'
+      API_PORT: 4000
+      MAX_ACTIVE_BORROWINGS: 3
+      DAILY_FINE: 5000
+      DEFAULT_BORROW_DAYS: 14
+    ports:
+      - '4000:4000'
+    depends_on:
+      - postgres
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: lms_web
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: 'http://localhost:4000/api/v1'
+    ports:
+      - '3000:3000'
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
